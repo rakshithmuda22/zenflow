@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=Outfit:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      background: transparent;
+      height: 100%;
+      overflow: hidden;
+      user-select: none;
+      -webkit-app-region: drag;
+    }
+    #container {
+      background: rgba(10, 10, 15, 0.95);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.06);
+      padding: 14px 18px 10px;
+      font-family: 'Outfit', sans-serif;
+      color: #F0EDE6;
+      position: relative;
+      overflow: hidden;
+      min-height: 100%;
+    }
+    #close {
+      position: absolute;
+      top: 8px;
+      right: 10px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #ff5f57;
+      border: none;
+      cursor: pointer;
+      -webkit-app-region: no-drag;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    #container:hover #close { opacity: 1; }
+    #time {
+      font-size: 38px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+    #label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      text-align: center;
+      margin-top: 2px;
+    }
+    .fo { color: #FF6B35; }
+    .br { color: #34D399; }
+    #tasks {
+      margin-top: 8px;
+      padding-top: 6px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      display: none;
+    }
+    #tasks-header {
+      font-size: 8px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #5C5A63;
+      margin-bottom: 3px;
+    }
+    .task {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 11px;
+      padding: 2px 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: #9B97A0;
+    }
+    .task.selected { color: #FF6B35; }
+    .task.done { color: #5C5A63; text-decoration: line-through; }
+    #progress {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      height: 3px;
+      border-radius: 0 2px 2px 0;
+      background: #FF6B35;
+      transition: width 0.5s linear;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <button id="close" title="Close"></button>
+    <div id="time">--:--</div>
+    <div id="label" class="fo">READY</div>
+    <div id="tasks">
+      <div id="tasks-header">TASKS</div>
+      <div id="tasks-list"></div>
+    </div>
+    <div id="progress"></div>
+  </div>
+
+  <script>
+    const timeEl = document.getElementById('time')
+    const labelEl = document.getElementById('label')
+    const tasksEl = document.getElementById('tasks')
+    const tasksListEl = document.getElementById('tasks-list')
+    const progressEl = document.getElementById('progress')
+    const closeBtn = document.getElementById('close')
+    const container = document.getElementById('container')
+
+    closeBtn.addEventListener('click', () => {
+      window.zenflowElectron.closeMini()
+    })
+
+    function fmt(s) {
+      const m = Math.floor(s / 60)
+      const sec = s % 60
+      return String(m).padStart(2, '0') + ':' + String(sec).padStart(2, '0')
+    }
+
+    function getLabel(type, count, state) {
+      if (state === 'idle') return 'READY'
+      if (state === 'completed') return 'DONE!'
+      if (type === 'focus') return 'FOCUS #' + (count + 1)
+      if (type === 'shortBreak') return 'SHORT BREAK'
+      return 'LONG BREAK'
+    }
+
+    function esc(s) {
+      return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    }
+
+    window.zenflowElectron.onTimerState((state) => {
+      const { remainingSeconds, totalSeconds, sessionType, sessionCount, timerState, tasks, selectedTaskId } = state
+      const brk = sessionType !== 'focus'
+
+      timeEl.textContent = fmt(remainingSeconds)
+      labelEl.textContent = getLabel(sessionType, sessionCount, timerState)
+      labelEl.className = brk ? 'br' : 'fo'
+
+      const accent = brk ? '#34D399' : '#FF6B35'
+      progressEl.style.background = accent
+      const pct = totalSeconds > 0 ? (remainingSeconds / totalSeconds) * 100 : 100
+      progressEl.style.width = pct + '%'
+
+      if (tasks && tasks.length > 0) {
+        tasksEl.style.display = 'block'
+        const active = tasks.filter(t => !t.completed).slice(0, 4)
+        tasksListEl.innerHTML = active.map(t => {
+          const sel = t.id === selectedTaskId
+          const cls = t.completed ? 'task done' : sel ? 'task selected' : 'task'
+          const bullet = sel ? '\u25CF ' : '\u25CB '
+          return '<div class="' + cls + '">' + bullet + esc(t.title) + '</div>'
+        }).join('')
+
+        // Resize window to fit tasks
+        const h = 110 + active.length * 20 + 30
+        if (window.zenflowElectron.resizeMini) {
+          window.zenflowElectron.resizeMini(280, h)
+        }
+      } else {
+        tasksEl.style.display = 'none'
+        if (window.zenflowElectron.resizeMini) {
+          window.zenflowElectron.resizeMini(280, 110)
+        }
+      }
+    })
+  </script>
+</body>
+</html>

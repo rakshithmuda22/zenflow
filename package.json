@@ -1,14 +1,34 @@
 {
   "name": "zenflow",
   "private": true,
-  "version": "1.0.0",
-  "author": "rakshithmuda22",
+  "version": "0.0.0",
   "type": "module",
+  "main": "electron/main.cjs",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "electron:dev": "npm run build && electron .",
+    "electron:build": "npm run build && electron-builder --mac"
+  },
+  "build": {
+    "appId": "com.zenflow.app",
+    "productName": "ZenFlow",
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": "dmg"
+    },
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*"
+    ],
+    "extraResources": [
+      { "from": "electron/mini-timer.html", "to": "mini-timer.html" }
+    ]
   },
   "dependencies": {
     "idb-keyval": "^6.2.2",
@@ -25,6 +45,8 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
+    "electron": "^41.1.0",
+    "electron-builder": "^26.8.1",
     "eslint": "^9.39.4",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
