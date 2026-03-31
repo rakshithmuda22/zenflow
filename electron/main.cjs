@@ -1,8 +1,17 @@
 const { app, BrowserWindow, ipcMain, screen } = require('electron')
 const path = require('path')
 
+const isDev = !app.isPackaged
+
 let mainWindow = null
 let miniWindow = null
+
+function getMiniTimerPath() {
+  if (isDev) {
+    return path.join(__dirname, 'mini-timer.html')
+  }
+  return path.join(process.resourcesPath, 'mini-timer.html')
+}
 
 function createMainWindow() {
   mainWindow = new BrowserWindow({
@@ -56,7 +65,7 @@ function createMiniWindow() {
     },
   })
 
-  miniWindow.loadFile(path.join(__dirname, 'mini-timer.html'))
+  miniWindow.loadFile(getMiniTimerPath())
   miniWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
 
   miniWindow.on('closed', () => {
@@ -74,7 +83,6 @@ function closeMiniWindow() {
   }
 }
 
-// IPC handlers
 ipcMain.on('open-mini', () => createMiniWindow())
 ipcMain.on('close-mini', () => closeMiniWindow())
 ipcMain.on('toggle-mini', () => {
