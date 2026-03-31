@@ -199,22 +199,8 @@ export function usePiP() {
       return
     }
 
-    // Document PiP — call requestWindow IMMEDIATELY (synchronous call, returns promise)
-    if (hasDocPiP && documentPictureInPicture) {
-      const hasTasks = useTaskStore.getState().tasks.length > 0
-      documentPictureInPicture.requestWindow({
-        width: 280,
-        height: hasTasks ? 280 : 120,
-      }).then(win => {
-        setupDocPiP(win)
-      }).catch(() => {
-        // Doc PiP failed, try video fallback
-        tryVideoPiP()
-      })
-      return
-    }
-
-    // Direct video fallback
+    // Video PiP first — gives true system-level always-on-top floating window
+    // Document PiP only floats within Chrome, Video PiP floats across ALL apps
     tryVideoPiP()
 
     function tryVideoPiP() {
