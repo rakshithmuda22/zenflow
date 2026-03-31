@@ -35,7 +35,7 @@ export function useTimer() {
   const selectedTaskId = useTaskStore((s) => s.selectedTaskId)
   const addFocusTime = useTaskStore((s) => s.addFocusTime)
 
-  const rafRef = useRef<number>(0)
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const sessionStartRef = useRef<number>(0)
 
   const getNextSessionType = useCallback((): SessionType => {
@@ -104,15 +104,15 @@ export function useTimer() {
     }
   }, [selectedTaskId, addSession, addFocusTime, incrementSession, notifyUser, autoStartBreaks, autoStartFocus, startBreak, startFocus])
 
-  // Animation frame tick
+  // Timer tick — uses setInterval so it keeps running when window is backgrounded
   useEffect(() => {
     if (state === 'idle' || state === 'paused' || state === 'completed') {
-      cancelAnimationFrame(rafRef.current)
+      if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null }
       return
     }
 
     let prevCompleted = false
-    const tick = () => {
+    intervalRef.current = setInterval(() => {
       const current = useTimerStore.getState()
       if (current.state === 'idle' || current.state === 'paused' || current.state === 'completed') return
 
@@ -121,13 +121,10 @@ export function useTimer() {
       if (afterTick.remainingSeconds <= 0 && !prevCompleted) {
         prevCompleted = true
         handleComplete()
-        return
       }
-      rafRef.current = requestAnimationFrame(tick)
-    }
-    rafRef.current = requestAnimationFrame(tick)
+    }, 250)
 
-    return () => cancelAnimationFrame(rafRef.current)
+    return () => { if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null } }
   }, [state, handleComplete])
 
   // Visibility recovery
