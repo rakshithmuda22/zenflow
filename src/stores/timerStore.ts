@@ -19,6 +19,7 @@ interface TimerStoreState {
   reset: () => void
   incrementSession: () => void
   recoverFromBackground: () => void
+  syncIdleDuration: (seconds: number) => void
 }
 
 export const useTimerStore = create<TimerStoreState>((set, get) => ({
@@ -107,6 +108,12 @@ export const useTimerStore = create<TimerStoreState>((set, get) => ({
     const { startTimestamp, state } = get()
     if (startTimestamp && state !== 'paused' && state !== 'idle' && state !== 'completed') {
       get().tick()
+    }
+  },
+
+  syncIdleDuration: (seconds) => {
+    if (get().state === 'idle') {
+      set({ totalSeconds: seconds, remainingSeconds: seconds })
     }
   },
 }))

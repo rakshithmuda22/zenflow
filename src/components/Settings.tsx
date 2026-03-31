@@ -1,4 +1,5 @@
 import { useSettingsStore } from '../stores/settingsStore'
+import { useTimerStore } from '../stores/timerStore'
 
 interface SettingsProps {
   onClose: () => void
@@ -55,12 +56,18 @@ function Toggle({ label, value, onChange }: { label: string; value: boolean; onC
 
 export function Settings({ onClose }: SettingsProps) {
   const settings = useSettingsStore()
+  const syncIdleDuration = useTimerStore((s) => s.syncIdleDuration)
+
+  const handleSave = () => {
+    syncIdleDuration(settings.focusDuration)
+    onClose()
+  }
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center safe-area-pad"
       style={{ background: 'rgba(0,0,0,0.6)' }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
+      onClick={(e) => { if (e.target === e.currentTarget) handleSave() }}
     >
       <div
         className="w-full max-w-md rounded-t-3xl sm:rounded-3xl p-6 max-h-[85vh] overflow-y-auto fade-enter"
@@ -71,7 +78,7 @@ export function Settings({ onClose }: SettingsProps) {
             Settings
           </h2>
           <button
-            onClick={onClose}
+            onClick={handleSave}
             className="btn-press w-8 h-8 rounded-xl flex items-center justify-center"
             style={{ background: 'var(--color-bg-tertiary)', color: 'var(--color-text-secondary)' }}
             aria-label="Close settings"
@@ -142,6 +149,15 @@ export function Settings({ onClose }: SettingsProps) {
             aria-label="Focus mantra text"
           />
         </div>
+
+        <button
+          onClick={handleSave}
+          className="btn-press w-full mt-6 py-3 rounded-2xl font-heading font-semibold text-sm"
+          style={{ background: 'var(--color-accent)', color: '#fff' }}
+          aria-label="Save settings"
+        >
+          Save
+        </button>
       </div>
     </div>
   )
