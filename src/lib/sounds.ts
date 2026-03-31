@@ -3,6 +3,7 @@ import type { AmbientSound } from '../types'
 
 let currentNodes: Tone.ToneAudioNode[] = []
 let isPlaying = false
+let audioResumed = false
 
 function disposeAll() {
   currentNodes.forEach((n) => {
@@ -51,11 +52,24 @@ function createForest(): Tone.ToneAudioNode[] {
   return [noise, filter, vol]
 }
 
+// Must be called from a user gesture (click/tap) on iOS
+export async function resumeAudio() {
+  if (audioResumed) return
+  await Tone.start()
+  audioResumed = true
+}
+
 export async function startSound(sound: AmbientSound, volume: number) {
   disposeAll()
   if (sound === 'none') return
 
-  await Tone.start()
+  // Tone.start() should already be called from user gesture via resumeAudio()
+  // but call it here as fallback for desktop
+  if (!audioResumed) {
+    await Tone.start()
+    audioResumed = true
+  }
+
   Tone.getDestination().volume.value = Tone.gainToDb(volume / 100)
 
   switch (sound) {

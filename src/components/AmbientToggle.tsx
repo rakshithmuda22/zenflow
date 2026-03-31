@@ -1,4 +1,5 @@
 import { useSettingsStore } from '../stores/settingsStore'
+import { resumeAudio } from '../lib/sounds'
 import type { AmbientSound } from '../types'
 
 const SOUNDS: { id: AmbientSound; label: string; icon: string }[] = [
@@ -11,6 +12,17 @@ const SOUNDS: { id: AmbientSound; label: string; icon: string }[] = [
 export function AmbientToggle() {
   const { ambientSound, ambientVolume, soundEnabled, setAmbientSound, setAmbientVolume, toggleSound } = useSettingsStore()
 
+  // Resume AudioContext on user gesture (required for iOS)
+  const handleToggle = () => {
+    if (!soundEnabled) resumeAudio()
+    toggleSound()
+  }
+
+  const handleSelectSound = (id: AmbientSound) => {
+    resumeAudio()
+    setAmbientSound(id)
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
@@ -18,7 +30,7 @@ export function AmbientToggle() {
           Ambient Sound
         </h3>
         <button
-          onClick={toggleSound}
+          onClick={handleToggle}
           className="btn-press w-10 h-5 rounded-full relative transition-colors"
           style={{ background: soundEnabled ? 'var(--color-accent)' : 'var(--color-bg-tertiary)' }}
           aria-label={soundEnabled ? 'Disable ambient sound' : 'Enable ambient sound'}
@@ -39,7 +51,7 @@ export function AmbientToggle() {
             {SOUNDS.map((s) => (
               <button
                 key={s.id}
-                onClick={() => setAmbientSound(s.id)}
+                onClick={() => handleSelectSound(s.id)}
                 className="btn-press flex flex-col items-center gap-1 rounded-xl py-2 transition-colors text-xs"
                 style={{
                   background: ambientSound === s.id ? 'var(--color-accent-soft)' : 'var(--color-bg-tertiary)',
