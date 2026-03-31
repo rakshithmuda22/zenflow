@@ -4,6 +4,7 @@ import { useSettingsStore } from '../stores/settingsStore'
 import { useSessionStore } from '../stores/sessionStore'
 import { useTaskStore } from '../stores/taskStore'
 import { launchConfetti } from '../lib/confetti'
+import { playChime } from '../lib/chime'
 import type { SessionType, Session } from '../types'
 
 function uid(): string {
@@ -88,12 +89,14 @@ export function useTimer() {
         addFocusTime(selectedTaskId, timerState.totalSeconds)
       }
       launchConfetti()
+      playChime()
       notifyUser('Focus session complete! Time for a break.')
 
       if (autoStartBreaks) {
         setTimeout(() => startBreak(), 1500)
       }
     } else {
+      playChime()
       notifyUser('Break is over! Ready to focus?')
       if (autoStartFocus) {
         setTimeout(() => startFocus(), 1500)
