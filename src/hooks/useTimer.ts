@@ -138,6 +138,39 @@ export function useTimer() {
     return () => document.removeEventListener('visibilitychange', handleVisibility)
   }, [])
 
+  // Keep screen awake while timer is active
+  const wakeLockRef = useRef<WakeLockSentinel | null>(null)
+  useEffect(() => {
+    const isActive = state === 'running' || state === 'break' || state === 'longBreak'
+    if (isActive && 'wakeLock' in navigator) {
+      navigator.wakeLock.request('screen').then(lock => {
+        wakeLockRef.current = lock
+      }).catch(() => {})
+    } else if (wakeLockRef.current) {
+      wakeLockRef.current.release().catch(() => {})
+      wakeLockRef.current = null
+    }
+    return () => {
+      wakeLockRef.current?.release().catch(() => {})
+      wakeLockRef.current = null
+    }
+  }, [state])
+
+  // Re-acquire wake lock when tab becomes visible again
+  useEffect(() => {
+    const reacquire = () => {
+      const s = useTimerStore.getState().state
+      const active = s === 'running' || s === 'break' || s === 'longBreak'
+      if (document.visibilityState === 'visible' && active && 'wakeLock' in navigator) {
+        navigator.wakeLock.request('screen').then(lock => {
+          wakeLockRef.current = lock
+        }).catch(() => {})
+      }
+    }
+    document.addEventListener('visibilitychange', reacquire)
+    return () => document.removeEventListener('visibilitychange', reacquire)
+  }, [])
+
   // Request notification permission
   useEffect(() => {
     if (Notification.permission === 'default') {
