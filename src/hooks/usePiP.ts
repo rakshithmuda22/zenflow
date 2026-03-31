@@ -6,6 +6,7 @@ import type { Task } from '../types'
 declare global {
   interface DocumentPictureInPicture {
     requestWindow(options?: { width?: number; height?: number }): Promise<Window>
+    window: Window | null
   }
   // eslint-disable-next-line no-var
   var documentPictureInPicture: DocumentPictureInPicture | undefined
@@ -41,8 +42,7 @@ function taskHtml(tasks: Task[], selectedId: string | null): string {
   }).join('')
 }
 
-// === Canvas Video PiP (fallback) ===
-
+// Canvas fallback constants
 const W = 340, H = 200
 
 function drawFrame(ctx: CanvasRenderingContext2D) {
@@ -54,7 +54,6 @@ function drawFrame(ctx: CanvasRenderingContext2D) {
 
   ctx.fillStyle = '#0A0A0F'
   ctx.fillRect(0, 0, W, H)
-
   ctx.fillStyle = '#F0EDE6'
   ctx.font = 'bold 52px Outfit, sans-serif'
   ctx.textAlign = 'center'
@@ -62,7 +61,6 @@ function drawFrame(ctx: CanvasRenderingContext2D) {
   ctx.letterSpacing = '-1.5px'
   ctx.fillText(fmt(t.remainingSeconds), W / 2, 48)
   ctx.letterSpacing = '0px'
-
   ctx.fillStyle = accent
   ctx.font = '600 11px Outfit, sans-serif'
   ctx.fillText(sessionLabel(t.sessionType, t.sessionCount, t.state).toUpperCase(), W / 2, 82)
@@ -81,8 +79,7 @@ function drawFrame(ctx: CanvasRenderingContext2D) {
     ctx.textAlign = 'left'
     ctx.fillText('TASKS', 20, 114)
     ctx.font = '400 13px DM Sans, sans-serif'
-    const show = active.slice(0, 4)
-    show.forEach((task, i) => {
+    active.slice(0, 4).forEach((task, i) => {
       const y = 132 + i * 18
       const sel = task.id === selectedTaskId
       ctx.fillStyle = sel ? accent : '#9B97A0'
@@ -110,20 +107,18 @@ export function usePiP() {
   const hasVideoPiP = typeof document !== 'undefined' && 'pictureInPictureEnabled' in document
   const isSupported = hasDocPiP || hasVideoPiP
 
-  const closePiP = useCallback(async () => {
+  // Synchronous cleanup — MUST NOT be async to preserve user gesture
+  const cleanupSync = useCallback(() => {
     activeRef.current = false
     unsubsRef.current.forEach(u => u())
     unsubsRef.current = []
     cancelAnimationFrame(rafRef.current)
-
     if (modeRef.current === 'doc') {
       pipWinRef.current?.close()
       pipWinRef.current = null
     }
     if (modeRef.current === 'video') {
-      if (document.pictureInPictureElement) {
-        await document.exitPictureInPicture().catch(() => {})
-      }
+      try { document.exitPictureInPicture() } catch { /* ignore */ }
       videoRef.current?.remove()
       videoRef.current = null
       canvasRef.current?.remove()
@@ -132,18 +127,7 @@ export function usePiP() {
     modeRef.current = null
   }, [])
 
-  const openDocPiPWindow = useCallback(async () => {
-    if (!documentPictureInPicture) return false
-    const hasTasks = useTaskStore.getState().tasks.length > 0
-
-    let win: Window
-    try {
-      win = await documentPictureInPicture.requestWindow({
-        width: 280,
-        height: hasTasks ? 280 : 120,
-      })
-    } catch { return false }
-
+  const setupDocPiP = useCallback((win: Window) => {
     pipWinRef.current = win
     modeRef.current = 'doc'
 
@@ -169,7 +153,7 @@ export function usePiP() {
     win.document.head.appendChild(style)
 
     win.document.body.innerHTML = `
-      <div id="ts"><div id="tm">--:--</div><div id="lb" class="fo">—</div></div>
+      <div id="ts"><div id="tm">--:--</div><div id="lb" class="fo">\u2014</div></div>
       <div id="tks" style="display:none"><div id="th">Tasks</div><div id="tl"></div></div>
       <div id="pg" style="background:#FF6B35;width:100%"></div>
     `
@@ -205,65 +189,73 @@ export function usePiP() {
     unsubsRef.current = [u1, u2]
     activeRef.current = true
 
-    win.addEventListener('pagehide', () => closePiP())
-    return true
-  }, [closePiP])
+    win.addEventListener('pagehide', () => cleanupSync())
+  }, [cleanupSync])
 
-  const openVideoPiP = useCallback(async () => {
-    const canvas = document.createElement('canvas')
-    canvas.width = W
-    canvas.height = H
-    canvas.style.display = 'none'
-    document.body.appendChild(canvas)
-    canvasRef.current = canvas
-    const ctx = canvas.getContext('2d')!
-
-    const stream = canvas.captureStream(30)
-    const video = document.createElement('video')
-    video.srcObject = stream
-    video.muted = true
-    video.playsInline = true
-    video.style.display = 'none'
-    video.width = W
-    video.height = H
-    document.body.appendChild(video)
-    videoRef.current = video
-
-    await video.play()
-    try {
-      await video.requestPictureInPicture()
-    } catch {
-      closePiP()
-      return false
+  // NOT async — requestWindow must be called synchronously in the user gesture
+  const openPiP = useCallback(() => {
+    if (activeRef.current) {
+      cleanupSync()
+      return
     }
 
-    modeRef.current = 'video'
-    activeRef.current = true
-
-    let last = 0
-    const loop = (ts: number) => {
-      if (!activeRef.current) return
-      if (ts - last > 66) { drawFrame(ctx); last = ts }
-      rafRef.current = requestAnimationFrame(loop)
+    // Document PiP — call requestWindow IMMEDIATELY (synchronous call, returns promise)
+    if (hasDocPiP && documentPictureInPicture) {
+      const hasTasks = useTaskStore.getState().tasks.length > 0
+      documentPictureInPicture.requestWindow({
+        width: 280,
+        height: hasTasks ? 280 : 120,
+      }).then(win => {
+        setupDocPiP(win)
+      }).catch(() => {
+        // Doc PiP failed, try video fallback
+        tryVideoPiP()
+      })
+      return
     }
-    rafRef.current = requestAnimationFrame(loop)
 
-    video.addEventListener('leavepictureinpicture', () => closePiP())
-    return true
-  }, [closePiP])
+    // Direct video fallback
+    tryVideoPiP()
 
-  const openPiP = useCallback(async () => {
-    if (activeRef.current) { await closePiP(); return }
+    function tryVideoPiP() {
+      if (!hasVideoPiP) return
+      const canvas = document.createElement('canvas')
+      canvas.width = W
+      canvas.height = H
+      canvas.style.display = 'none'
+      document.body.appendChild(canvas)
+      canvasRef.current = canvas
+      const ctx = canvas.getContext('2d')!
 
-    // try Document PiP first (best experience), fall back to Video PiP
-    if (hasDocPiP) {
-      const ok = await openDocPiPWindow()
-      if (ok) return
+      const stream = canvas.captureStream(30)
+      const video = document.createElement('video')
+      video.srcObject = stream
+      video.muted = true
+      video.playsInline = true
+      video.style.display = 'none'
+      video.width = W
+      video.height = H
+      document.body.appendChild(video)
+      videoRef.current = video
+
+      video.play().then(() => {
+        return video.requestPictureInPicture()
+      }).then(() => {
+        modeRef.current = 'video'
+        activeRef.current = true
+        let last = 0
+        const loop = (ts: number) => {
+          if (!activeRef.current) return
+          if (ts - last > 66) { drawFrame(ctx); last = ts }
+          rafRef.current = requestAnimationFrame(loop)
+        }
+        rafRef.current = requestAnimationFrame(loop)
+        video.addEventListener('leavepictureinpicture', () => cleanupSync())
+      }).catch(() => {
+        cleanupSync()
+      })
     }
-    if (hasVideoPiP) {
-      await openVideoPiP()
-    }
-  }, [closePiP, hasDocPiP, hasVideoPiP, openDocPiPWindow, openVideoPiP])
+  }, [cleanupSync, hasDocPiP, hasVideoPiP, setupDocPiP])
 
-  return { openPiP, closePiP, isSupported, isActive: () => activeRef.current }
+  return { openPiP, closePiP: cleanupSync, isSupported, isActive: () => activeRef.current }
 }
