@@ -2,8 +2,8 @@
 
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)](https://react.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](https://typescriptlang.org)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
-[![Vite](https://img.shields.io/badge/Vite-5-646CFF?logo=vite&logoColor=white)](https://vitejs.dev)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
+[![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)](https://vitejs.dev)
 [![Vercel](https://img.shields.io/badge/Deployed-Vercel-000000?logo=vercel&logoColor=white)](https://zenflow-lyart.vercel.app)
 [![PWA](https://img.shields.io/badge/PWA-Installable-5A0FC8?logo=pwa&logoColor=white)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -36,8 +36,8 @@ works offline. installable on mac and iphone. dark mode. ambient sounds. floatin
 | Layer | Technology |
 |---|---|
 | Framework | React 19, TypeScript 5 |
-| Build Tool | Vite 5 |
-| Styling | Tailwind CSS 3 |
+| Build Tool | Vite 8 |
+| Styling | Tailwind CSS 4 (via `@tailwindcss/vite`) |
 | State Management | Zustand |
 | Audio Engine | Tone.js (procedural generation) |
 | Storage | idb-keyval (IndexedDB) |
@@ -48,13 +48,17 @@ works offline. installable on mac and iphone. dark mode. ambient sounds. floatin
 
 ## Quick Start
 
+**Prerequisites:** Node.js **20+** (LTS recommended).
+
 ```bash
 git clone https://github.com/rakshithmuda22/zenflow.git
 cd zenflow
 npm install
-npm run dev            # browser at localhost:5173
-npm run electron:dev   # electron app
+npm run dev            # browser at http://localhost:5173
+npm run electron:dev   # electron app (requires successful Electron download)
 ```
+
+`electron` is a devDependency: `npm install` runs Electron’s postinstall, which **downloads a platform binary from GitHub**. If that step fails (offline, DNS, or strict proxy), use **`npm install --ignore-scripts`** to install web dependencies only, then run `npm run dev`. Install Electron later when you have network access if you need the desktop build.
 
 ---
 
