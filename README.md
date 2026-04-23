@@ -4,11 +4,8 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](https://typescriptlang.org)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
 [![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)](https://vitejs.dev)
-[![Vercel](https://img.shields.io/badge/Deployed-Vercel-000000?logo=vercel&logoColor=white)](https://zenflow-lyart.vercel.app)
 [![PWA](https://img.shields.io/badge/PWA-Installable-5A0FC8?logo=pwa&logoColor=white)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-
-> **[Live Demo  -->  zenflow-lyart.vercel.app](https://zenflow-lyart.vercel.app)**
 
 pomodoro timer that doesn't suck. built it because every focus app wanted $5/month for a countdown timer.
 
@@ -42,7 +39,6 @@ works offline. installable on mac and iphone. dark mode. ambient sounds. floatin
 | Audio Engine | Tone.js (procedural generation) |
 | Storage | idb-keyval (IndexedDB) |
 | Desktop | Electron (macOS, always-on-top PIP) |
-| Deployment | Vercel |
 
 ---
 
@@ -64,9 +60,11 @@ npm run electron:dev   # electron app (requires successful Electron download)
 
 ## Install
 
-### iPhone
+### iPhone (PWA)
 
-1. open [zenflow-lyart.vercel.app](https://zenflow-lyart.vercel.app) in **safari**
+build and host it yourself (any static host works), then on your iPhone:
+
+1. open your deployed URL in **safari**
 2. tap the **share button** (square with arrow at the bottom)
 3. scroll down --> tap **"add to home screen"**
 4. tap **add**
@@ -90,9 +88,9 @@ the built app will be at `release/mac-arm64/ZenFlow.app` -- drag it to your Appl
 
 ### Mac -- PWA (lightweight alternative)
 
-if you don't want the full electron app:
+if you don't want the full electron app, deploy the PWA to any static host and:
 
-1. open [zenflow-lyart.vercel.app](https://zenflow-lyart.vercel.app) in **chrome** or **edge**
+1. open your deployed URL in **chrome** or **edge**
 2. click the **three dots** menu --> **"install zenflow"**
 3. it'll appear in your dock
 
